@@ -186,11 +186,52 @@ $accent: $primary;
 
   &:focus, &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
 
-  .lpv__controls { background: $panel; border-top: 1px solid $rule; }
+  // The bar a reader steps through the game with. It is two big buttons and
+  // nothing else: a child wants one step back and one step forward, large
+  // enough to hit without aiming, and everything else the viewer offers sits
+  // behind the dots at the far end of the row.
+  .lpv__controls {
+    background: $panel;
+    border-top: 1px solid $rule;
 
-  // The start and end buttons added to the control bar. Each is two of the
-  // viewer's own chevrons, pulled together so the pair reads as one mark.
-  .lpv-jump .lpv__icon + .lpv__icon { margin-left: -.2em; }
+    // The viewer shares the width out between whatever buttons are in the row.
+    // These take the room they need instead, and what is left over falls
+    // between the two steps and the menu.
+    .lpv__fbt { flex: 0 0 auto; }
+
+    // Laid out prev, menu, next, so the two steps are brought together and the
+    // menu sent past them.
+    .lpv__controls__goto--prev { order: 1; }
+    .lpv__controls__goto--next { order: 2; }
+
+    .lpv__controls__goto--prev,
+    .lpv__controls__goto--next {
+      font-size: 2rem;
+      padding: .15rem 1.5rem;
+    }
+
+    // Set apart, so a thumb aiming at one of them does not land on the other.
+    // The rule the viewer draws between neighbouring buttons goes with the
+    // gap that has replaced it; the menu keeps its own, at the far end.
+    .lpv__controls__goto--next {
+      margin-left: 1rem;
+      border-left: 0;
+    }
+
+    // At the other end of the row, away from the two buttons a reader is
+    // aiming at, so a thumb meaning to step forward does not open it.
+    .lpv__controls__menu {
+      order: 3;
+      margin-left: auto;
+      font-size: 1.1rem;
+    }
+
+    // The viewer puts the ends of the game in the row whenever its menu is
+    // open, which would move the two steps under a reader mid-game. The menu
+    // names them instead, so the row keeps its shape whatever is showing.
+    .lpv__controls__goto--first,
+    .lpv__controls__goto--last { display: none; }
+  }
 }
 
 
