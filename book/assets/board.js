@@ -542,9 +542,11 @@ export function attach({ boardEl, lpv, game }) {
 
   // An arrow from a move, in chessground's own brushes: the candidate in blue,
   // the reply that hangs off it in yellow, so a hovered pair reads as two
-  // moves rather than one.
-  const arrow = (uci, brush) => ({
-    orig: uci.slice(0, 2), dest: uci.slice(2, 4), brush
+  // moves rather than one. A candidate's arrow carries its rank, which is the
+  // number on its card, so the board and the cards name the same four moves.
+  const arrow = (uci, brush, rank) => ({
+    orig: uci.slice(0, 2), dest: uci.slice(2, 4), brush,
+    label: rank ? { text: String(rank) } : undefined
   });
 
   // A span with its class and its text, which is most of what the tree is
@@ -643,9 +645,6 @@ export function attach({ boardEl, lpv, game }) {
   // engine's own choice it falls. The card's face is one button, so the whole
   // of it draws the move and plays it, from the keyboard as well as the mouse.
   function renderTree(node) {
-    // A re-render replaces the rows the hover was bound to, so any arrow the
-    // reader was showing goes with them.
-    ground.setAutoShapes([]);
     list.textContent = '';
     head.textContent = '';
     head.append(
@@ -659,6 +658,18 @@ export function attach({ boardEl, lpv, game }) {
     const playedSan = played ? bare(played.san) : null;
     const ply = entryPly + path.length;
     const best = node.candidates[0].score;
+
+    // Every candidate is drawn from the moment the tree is, each carrying its
+    // rank, because hovering is a thing only a mouse can do: on a phone a tap
+    // plays the move, and an arrow a reader never sees is no suggestion at
+    // all. The engine's own choice is solid and the rest are pale, so the
+    // board ranks them the way the cards do. Hovering one narrows the board to
+    // it; leaving puts the four back. A re-render rebuilds this, which is also
+    // what takes away the arrow a hover was showing.
+    const resting = node.candidates.map((c, i) =>
+      arrow(c.uci, i === 0 ? 'blue' : 'paleBlue', i + 1));
+    const show = shapes => () => ground.setAutoShapes(shapes);
+    ground.setAutoShapes(resting);
 
     node.candidates.forEach((candidate, i) => {
       const isGame = playedSan !== null && bare(candidate.san) === playedSan;
@@ -685,15 +696,14 @@ export function attach({ boardEl, lpv, game }) {
       // the one a reader is looking for, and a pip did not say which.
       if (isGame) pick.appendChild(span('tree__tag', 'played in the game'));
 
-      // Hovering a candidate draws it; hovering a reply draws it and the
-      // candidate it hangs under, so the parent is never lost.
-      const mine = [arrow(candidate.uci, 'blue')];
-      const show = shapes => () => ground.setAutoShapes(shapes);
+      // Hovering a candidate draws it alone; hovering a reply draws it and
+      // the candidate it hangs under, so the parent is never lost.
+      const mine = [arrow(candidate.uci, 'blue', i + 1)];
       pick.addEventListener('click', () => advance([candidate.uci]));
       pick.addEventListener('mouseenter', show(mine));
-      pick.addEventListener('mouseleave', show([]));
+      pick.addEventListener('mouseleave', show(resting));
       pick.addEventListener('focus', show(mine));
-      pick.addEventListener('blur', show([]));
+      pick.addEventListener('blur', show(resting));
       li.appendChild(pick);
 
       // The answers sit beneath their move and under a heading that says whose
@@ -720,7 +730,7 @@ export function attach({ boardEl, lpv, game }) {
           btn.addEventListener('mouseenter', show(both));
           btn.addEventListener('mouseleave', show(mine));
           btn.addEventListener('focus', show(both));
-          btn.addEventListener('blur', show([]));
+          btn.addEventListener('blur', show(resting));
           rli.appendChild(btn);
           ul.appendChild(rli);
         });
@@ -734,6 +744,7 @@ export function attach({ boardEl, lpv, game }) {
   }
 
   function renderNone() {
+    ground.setAutoShapes([]);
     list.textContent = '';
     head.textContent = '';
     head.appendChild(span('board-tree__who', 'Nothing to suggest'));
@@ -784,6 +795,8 @@ export function attach({ boardEl, lpv, game }) {
 
   async function analyse() {
     treeEl.hidden = false;
+    // The moves drawn for the position just left are not moves in this one.
+    ground.setAutoShapes([]);
     const fen = chess.fen();
     const mine = ++seq;
     const first = !engine;

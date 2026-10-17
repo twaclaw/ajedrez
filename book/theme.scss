@@ -281,6 +281,18 @@ $accent: $primary;
 .game-board.is-explore { --sq-light: #{$explore-light}; --sq-dark: #{$explore-dark}; }
 .game-board.is-play    { --sq-light: #{$play-light};    --sq-dark: #{$play-dark}; }
 
+// While exploring, the board holds its place as the cards scroll past it. The
+// cards' whole purpose is to draw moves on the board, and a card whose arrow
+// is off the top of the screen says nothing at all -- which is what a reader
+// on a phone got, where the tree alone is taller than the screen.
+.game-board.is-explore .pgn-board {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  // Opaque, or the cards show through the margin around the board as they go.
+  background: $body-bg;
+}
+
 
 // --- The piece picker -----------------------------------------------------
 // Above the board: choosing a set is a preference, and the credit beside the
@@ -604,6 +616,17 @@ $accent: $primary;
     grid-column: 1 / -1;
     padding: .2rem .35rem;
     color: $muted;
+  }
+
+  // A phone is too narrow for two cards at the width they ask for, so four of
+  // them fall into one column and the tree grows taller than the screen. Two
+  // narrower cards instead, each keeping the engine's first answer only: the
+  // move and what it is worth are what a reader is choosing between, and the
+  // rest of the answers are a line of enquiry rather than part of the choice.
+  @media (max-width: 30rem) {
+    .board-tree__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tree__replies li:nth-child(n + 2) { display: none; }
+    .board-tree__hint { display: none; }
   }
 }
 
