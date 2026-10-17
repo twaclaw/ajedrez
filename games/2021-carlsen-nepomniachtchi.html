@@ -46,7 +46,7 @@ ul.task-list li input[type="checkbox"] {
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-b640cfca19a0f821876247fd928ac0f1.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-5f3439165649fff89471160f005bd6e0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -894,33 +894,36 @@ function wire(boardEl) {
     menu: { getPgn: { enabled: true } }
   });
 
-  // The viewer ships prev, menu and next. With no move list on the page those
-  // three are the only way through a game, which is a long way round in a
-  // game of 136 moves, so the ends of it get a button each. They are given
-  // the viewer's own button class, so they are styled by it.
-  const controls = boardEl.querySelector('.lpv__controls');
-  if (controls) {
-    const jump = (where, icon, label, before) => {
-      const btn = document.createElement('button');
-      btn.className = 'lpv__fbt lpv-jump';
-      btn.title = label;
-      btn.setAttribute('aria-label', label);
-      // Two of the viewer's own chevrons rather than a character of our own,
-      // so the ends of the bar are drawn in the same weight as the middle.
-      for (let i = 0; i < 2; i++) {
-        const g = document.createElement('span');
-        g.className = 'lpv__icon lpv__icon-' + icon;
-        btn.appendChild(g);
-      }
-      btn.addEventListener('click', () => lpv.goTo(where));
-      controls.insertBefore(btn, before);
-    };
-    jump('first', 'left-open', 'Go to the start of the game', controls.firstChild);
-    jump('last', 'right-open', 'Go to the end of the game', null);
+  // With no move list on the page the control bar is the only way through a
+  // game, which is a long way round in a game of 136 moves, so the ends of it
+  // are offered too -- in the menu rather than the row, named rather than
+  // drawn, because a child reads "Go to the start" sooner than a pair of
+  // chevrons, and because the row is kept to the two steps that matter.
+  //
+  // The viewer builds that menu afresh every time it is opened, so the entries
+  // are added as it appears rather than once at mount.
+  const viewer = boardEl.querySelector('.lpv');
+  if (viewer) {
+    const ends = [['first', 'Go to the start'], ['last', 'Go to the end']];
+    new MutationObserver(() => {
+      const menu = viewer.querySelector(':scope > .lpv__menu');
+      if (!menu || menu.querySelector('.lpv-end')) return;
+      // Above the viewer's own entries: moving about the game is what a reader
+      // opens the menu for, and flipping the board is not.
+      menu.prepend(...ends.map(([where, label]) => {
+        const btn = document.createElement('button');
+        btn.className = 'lpv__menu__entry lpv__fbt lpv-end';
+        btn.textContent = label;
+        // Moving to a move puts the viewer back on the board itself, so the
+        // menu closes behind the jump without being told to.
+        btn.addEventListener('click', () => lpv.goTo(where));
+        return btn;
+      }));
+    }).observe(viewer, { childList: true });
   }
 
   // The viewer binds the left and right arrows itself; these are the two it
-  // leaves, and they are what a reader expects of a player's controls.
+  // leaves, and they reach the ends of the game without opening the menu.
   boardEl.addEventListener('keydown', e => {
     const to = (e.key === 'Home' || e.key === 'ArrowUp') ? 'first'
              : (e.key === 'End' || e.key === 'ArrowDown') ? 'last' : null;
