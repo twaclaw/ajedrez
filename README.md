@@ -51,17 +51,31 @@ at build, so a PGN that did not copy cleanly is refused rather than published.
 
 ## The board
 
-A game page shows a read-only viewer. Two modes take it over and give it back
-where they found it, each recolouring the board while it has it: `Guess` asks
-for the move the game made next, and judges any other legal move with
-Stockfish, then plays it and either reads on (`▸`) or asks the next one
-(`▸?`); `Explore` hands the position over to play on against the engine,
-which answers at the gentlest of three strengths until `vs` says otherwise or
-turns it off, and takes back its reply along with your move.
+A game page shows a read-only viewer. Three modes take it over and give it
+back where they found it, each recolouring the board while it has it.
 
-Under the board, `♟` picks the pieces from eleven sets, each under a licence
-this book can publish and each credited beside the picker. The choice follows
-the reader through the book, and only the chosen set is ever fetched.
+`Guess` asks for the move the game made next, and judges any other legal move
+with Stockfish, then plays it and either reads on (`▸`) or asks the next one
+(`▸?`).
+
+`Explore` asks Stockfish what it would play here and lays the answer out as a
+tree. Each of the four candidates is a card carrying the engine's ranking of
+it, the move, what the position is worth after it, and a bar for the pawns it
+gives up against the engine's own choice, with the replies the engine expects
+beneath it. Hovering a move draws it on the board -- a reply draws the move it
+answers too -- and clicking one plays it and asks the same question again, with
+a breadcrumb back up the line. The move the game itself played is marked
+wherever it turns up, and scored alongside the rest even when the engine would
+not have proposed it, and once the reader has followed the game forward a card
+offers the way back to it.
+
+`vs Stockfish` hands the position over to play the rest of the game out against
+the engine, which answers at the gentlest of three strengths until `vs` says
+otherwise or turns it off, and takes back its reply along with your move.
+
+Above the board, `Pieces` picks from eleven sets, each under a licence this book
+can publish and each credited beside the picker. The choice follows the reader
+through the book, and only the chosen set is ever fetched.
 
 The viewer, the engine and the piece sets live in `book/assets` and are
 committed.

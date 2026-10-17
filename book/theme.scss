@@ -12,6 +12,17 @@ $board-light: #eeeed2 !default;
 $board-dark:  #769656 !default;
 $coord:       #2f3a2a !default;   // the file and rank letters on the board
 
+// A mode recolours the board while it has it, which is the whole of the
+// announcement that the game's own score is no longer what is being shown.
+// They are named here because the tree borrows the exploring colour for the
+// moves the game itself played.
+$guess-light:   #f5ecd7 !default;
+$guess-dark:    #b2893c !default;
+$explore-light: #e9e4f2 !default;
+$explore-dark:  #7a6aa6 !default;
+$play-light:    #dfe9f3 !default;
+$play-dark:     #41719c !default;
+
 // The board, and with it everything in its column. Wide enough to read the
 // pieces, narrow enough that a line of prose beside it is not a mile long.
 $board-width: 29rem !default;
@@ -225,8 +236,48 @@ $accent: $primary;
   grid-template-rows: auto;
 }
 
-.game-board.is-explore { --sq-light: #e9e4f2; --sq-dark: #7a6aa6; }
-.game-board.is-guess   { --sq-light: #f5ecd7; --sq-dark: #b2893c; }
+.game-board.is-guess   { --sq-light: #{$guess-light};   --sq-dark: #{$guess-dark}; }
+.game-board.is-explore { --sq-light: #{$explore-light}; --sq-dark: #{$explore-dark}; }
+.game-board.is-play    { --sq-light: #{$play-light};    --sq-dark: #{$play-dark}; }
+
+
+// --- The piece picker -----------------------------------------------------
+// Above the board: choosing a set is a preference, and the credit beside the
+// select is what the sets' licences ask a published book to carry.
+
+.board-pieces {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  font-size: .8rem;
+  color: $muted;
+
+  .board-pieces__label {
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  select {
+    font: inherit;
+    color: $body-color;
+    padding: .05rem .2rem;
+    border: 1px solid $rule;
+    border-radius: 3px;
+    background: $panel;
+
+    &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+  }
+
+  // The credit is as long as whoever drew the set made it: it gives way rather
+  // than pushing the row past the board.
+  .board-pieces__by {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 
 
 // --- The controls under the board -----------------------------------------
@@ -250,36 +301,270 @@ $accent: $primary;
 
   &:hover:not(:disabled) { border-color: $accent; color: $accent; }
   &:disabled { opacity: .4; cursor: default; }
-  // The opponent, when there is one, and how strong it is set to play.
-  &[aria-pressed="true"] { border-color: $accent; background: $accent; color: #fff; }
   &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
-}
 
-// Which pieces the board is drawn with, and whoever drew them.
-.board-pieces {
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  margin-top: .4rem;
-  font-size: .78rem;
-  color: $muted;
-
-  select {
-    font: inherit;
+  // A button that holds something on rather than doing it once: the engine as
+  // an opponent, which is on from the moment a game against it begins. It
+  // wears the colour of the board it sits under, so the two read as one state.
+  &[aria-pressed="true"] {
+    border-color: $play-dark;
+    background: $play-light;
     color: $body-color;
-    padding: .05rem .2rem;
-    border: 1px solid $rule;
-    border-radius: 3px;
-    background: $panel;
 
-    &:focus-visible { outline: 2px solid $accent; outline-offset: 2px; }
+    &:hover { border-color: $play-dark; color: $body-color; }
   }
 }
 
-.board-pieces__mark { font-size: .95rem; color: $body-color; }
-.board-pieces__by { min-width: 0; overflow: hidden; text-overflow: ellipsis;
-                    white-space: nowrap; }
 
+// --- The exploring tree ---------------------------------------------------
+// While a reader explores, the engine's suggested moves sit below the box that
+// names the current move, under a breadcrumb of how the reader got there. Each
+// candidate is a card: its rank, the move, what the position is worth after it,
+// and a bar for how far short of the engine's own choice it falls, with the
+// answers it expects beneath. The cards are what the reader compares, so each
+// one is drawn as a thing with edges rather than as a line of a list.
+
+.board-tree {
+  margin-top: .5rem;
+  font-size: .85rem;
+
+  // The panel is built once and hidden until there is a mode that fills it.
+  &[hidden] { display: none; }
+
+  .board-tree__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .1rem .5rem;
+    margin-bottom: .35rem;
+  }
+  .board-tree__who {
+    font-size: .8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: $muted;
+  }
+  // What the cards do. The arrows are drawn on hover, which a reader has no
+  // reason to go looking for unless they are told it is there.
+  .board-tree__hint { font-size: .75rem; color: $muted; }
+
+  .board-tree__crumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .15rem;
+    margin-bottom: .35rem;
+    font-family: var(--bs-font-monospace, monospace);
+  }
+  .crumb__node {
+    padding: 0 .25rem;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: $accent;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { background: $panel; }
+    &:focus-visible { outline: 2px solid $accent; outline-offset: 1px; }
+    // The move now on the board: a place, not a way back to it.
+    &:disabled { color: $body-color; cursor: default; }
+  }
+  // The move the game played to reach the position Explore began at.
+  .crumb__root { color: $explore-dark; }
+
+  // Two cards abreast of the board's own column, one on a phone. A card has a
+  // move, a number and a bar to hold, which four across cannot do legibly, and
+  // a pair at a time still reads sideways rather than down a list.
+  .board-tree__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: .4rem;
+    align-items: start;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tree__cand {
+    border: 1px solid $rule;
+    border-radius: 4px;
+    background: $body-bg;
+    overflow: hidden;
+  }
+  // The engine's first choice, ringed rather than tinted: among cards it is the
+  // edge that is seen first, and a ring says "this one" where a shade only says
+  // "these differ".
+  .tree__cand--best { border-color: $accent; }
+  // A card can be both the engine's choice and the move the game played. The
+  // game wins the border, which is the rarer thing to say, and the numbered
+  // chip goes on saying which move the engine put first.
+  .tree__cand--game { border-color: $explore-dark; }
+
+  // The card's face is the button: all of it draws the move and plays it.
+  .tree__pick {
+    display: block;
+    width: 100%;
+    padding: .3rem .4rem;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: $panel; }
+    &:focus-visible { outline: 2px solid $accent; outline-offset: -2px; }
+  }
+
+  // The move on the left, its evaluation pushed to the right, so the numbers
+  // line up down the column however long the move is.
+  .tree__row {
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+  }
+  // The engine's order, as a numeral: a reader should not have to count cards
+  // to learn which move was preferred to which.
+  .tree__rank {
+    flex: none;
+    min-width: 1.1rem;
+    padding: 0 .15rem;
+    border-radius: 2px;
+    background: $panel;
+    color: $muted;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .tree__cand--best .tree__rank { background: $accent; color: #fff; }
+
+  .tree__san {
+    font-family: var(--bs-font-monospace, monospace);
+    font-weight: 600;
+  }
+  .tree__eval {
+    margin-left: auto;
+    font-family: var(--bs-font-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+  }
+
+  // The bar, and beside it the pawns the move gives up against the best one.
+  .tree__foot {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin-top: .3rem;
+  }
+  .tree__gauge {
+    flex: 1 1 auto;
+    height: .25rem;
+    border-radius: 2px;
+    background: $panel;
+    overflow: hidden;
+  }
+  .tree__fill {
+    display: block;
+    height: 100%;
+    border-radius: 2px;
+    background: $accent;
+    opacity: .45;
+  }
+  .tree__cand--best .tree__fill { opacity: 1; }
+  .tree__delta {
+    flex: none;
+    min-width: 2.5rem;
+    font-family: var(--bs-font-monospace, monospace);
+    font-size: .7rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: $muted;
+  }
+
+  // The move the game itself made, said in words: it is the card the reader is
+  // looking for, and it is worth more than a pip.
+  .tree__tag {
+    display: block;
+    margin-top: .25rem;
+    font-size: .68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: $explore-dark;
+  }
+
+  // The answers hang off their move, in a tray under a heading that says whose
+  // moves they are, so the nesting does not have to be worked out from colour.
+  .tree__answers {
+    padding: .25rem .4rem .3rem;
+    border-top: 1px solid $rule;
+    background: rgba($panel, .55);
+  }
+  .tree__answers-head {
+    display: block;
+    margin-bottom: .1rem;
+    font-size: .68rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: $muted;
+  }
+  .tree__replies {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .tree__reply {
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+    width: 100%;
+    padding: .05rem .2rem;
+    border: 0;
+    border-radius: 2px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    font-size: .8rem;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover { background: $body-bg; }
+    &:focus-visible { outline: 2px solid $accent; outline-offset: -1px; }
+
+    // An answer is not a candidate: it is shown to say what the move invites,
+    // so it is set lighter than the move it hangs under.
+    .tree__san { font-weight: 400; }
+    .tree__eval { color: $muted; }
+  }
+  // A reply the engine has not scored yet, from the search still running.
+  .tree__reply--pending { opacity: .5; }
+
+  // The way back to the game from a move that followed it, skipping the plies
+  // the reader has already walked.
+  .tree__return {
+    display: block;
+    width: 100%;
+    padding: .15rem .3rem;
+    border: 0;
+    border-top: 1px solid $rule;
+    background: $panel;
+    color: $accent;
+    font: inherit;
+    font-size: .75rem;
+    cursor: pointer;
+
+    &:hover { color: $body-color; }
+    &:focus-visible { outline: 2px solid $accent; outline-offset: -2px; }
+  }
+
+  // Nothing to suggest: one line, across whatever cards would have stood here.
+  .board-tree__none {
+    grid-column: 1 / -1;
+    padding: .2rem .35rem;
+    color: $muted;
+  }
+}
 
 // The answer to a guess, in the bar and again over the board, where it is
 // large enough to read from across a room. Three ways of saying one thing:
