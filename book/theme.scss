@@ -284,8 +284,9 @@ $accent: $primary;
 // While exploring, the board holds its place as the cards scroll past it. The
 // cards' whole purpose is to draw moves on the board, and a card whose arrow
 // is off the top of the screen says nothing at all -- which is what a reader
-// on a phone got, where the tree alone is taller than the screen.
-.game-board.is-explore .pgn-board {
+// on a phone got, where the tree alone is taller than the screen. The board
+// takes its controls with it, so the way back out is never under the board.
+.game-board.is-explore .board-deck {
   position: sticky;
   top: 0;
   z-index: 3;
@@ -618,14 +619,16 @@ $accent: $primary;
     color: $muted;
   }
 
-  // A phone is too narrow for two cards at the width they ask for, so four of
-  // them fall into one column and the tree grows taller than the screen. Two
-  // narrower cards instead, each keeping the engine's first answer only: the
-  // move and what it is worth are what a reader is choosing between, and the
-  // rest of the answers are a line of enquiry rather than part of the choice.
+  // A phone is too narrow for two cards at the width they ask for, so without
+  // this they fall into a single column four rows deep. Two narrower cards
+  // instead, each keeping every answer the engine gave it: what the opponent
+  // can reply is half of what makes a move worth choosing, and a card that
+  // shows one reply of three invites the wrong move. The board is pinned
+  // above them, so the little that does not fit can be scrolled to safely.
   @media (max-width: 30rem) {
     .board-tree__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .tree__replies li:nth-child(n + 2) { display: none; }
+    // The hint names hovering, which a phone cannot do; the arrows on the
+    // board say the same thing there without being told to.
     .board-tree__hint { display: none; }
   }
 }
