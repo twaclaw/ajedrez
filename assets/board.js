@@ -376,6 +376,14 @@ export function attach({ boardEl, lpv, game }) {
   bar.className = 'board-bar';
   boardEl.after(bar);
 
+  // The board and the buttons under it move as one. Exploring pins the board
+  // to the top of the screen, and a control left behind would end up under it
+  // -- out of reach exactly when a reader wants the way back out.
+  const deck = document.createElement('div');
+  deck.className = 'board-deck';
+  boardEl.before(deck);
+  deck.append(boardEl, bar);
+
   // The tree, shown only while exploring. It goes below the box that names the
   // move on the board, so the proposals read as a continuation of it.
   const treeEl = document.createElement('div');
